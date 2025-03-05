@@ -1,0 +1,98 @@
+name: OnePlus Kernel Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      oplus_branch:
+        type: string
+        required: true
+        description: OnePlus source code branch.
+      oplus_file:
+        type: string
+        required: true
+        description: OnePlus source code file.
+      susfs_branch:
+        type: string
+        required: true
+        description: susfs4ksu branch.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 8192    # 16GB for root memory reservation
+          temp-reserve-mb: 2048     # 8GB for temporary memory reservation
+          swap-size-mb: 8192       # 16GB for swap size
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install repo python3 python-is-python3
+      
+      - name: Initialize and sync kernel source
+        run: |
+          # susfs4ksu
+          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b ${{ inputs.susfs_branch }} --depth 1
+
+          # AnyKernel3
+          git clone https://github.com/osm0sis/AnyKernel3.git --depth 1
+
+          # OnePlus kernel
+          mkdir -p oplus && cd oplus
+          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b ${{ inputs.oneplus_branch }} -m ${{ inputs.oneplus_file }} --depth 1
+          repo --version
+          repo --trace sync -c -j$(nproc --all) --no-tags --fail-fast
+
+          # KernelSU-Next
+          cd kernel_platform
+          curl -LSs https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next-susfs/kernel/setup.sh | bash -s next-susfs
+
+      - name: Apply susfs patches
+        run: |
+          cd oplus/kernel_platform
+          cp ../../susfs4ksu/kernel_patches/50_add_susfs_in_${{ inputs.susfs_branch }}.patch ./common/
+          cp ../../susfs4ksu/kernel_patches/fs/* ./common/fs/
+          cp ../../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
+
+          cd common
+          patch -p1 < 50_add_susfs_in_${{ inputs.susfs_branch }}.patch
+
+      - name: Run sed and perl Commands
+        run: |
+          cd oplus/kernel_platform
+          sed -i '$s|echo "\$res"|echo "\$res-Wild+"|' ./common/scripts/setlocalversion
+          sed -i '$s|echo "\$res"|echo "\$res-Wild+"|' ./msm-kernel/scripts/setlocalversion
+
+      - name: Build the Kernel
+        run: |
+          rm -rf ./kernel_platform/common/android/abi_gki_protected_exports_*
+          ./kernel_platform/oplus/build/oplus_build_kernel.sh pineapple gki
+
+      - name: Create Bootimgs Folder and Copy Images
+        run: |
+          cd oplus
+          cp ./out/dist/Image ../AnyKernel3/Image
+          
+      - name: Create ZIP Files for Different Formats
+        run: |
+          ZIP_NAME="Anykernel3-${{ inputs.susfs_branch }}-KernelSU-SUSFS.zip"
+          cd ./AnyKernel3
+          zip -r ../$ZIP_NAME ./*
+          
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel
+          path: |
+            *.zip
+
+      - name: Cleanup workspace
+        run: |
+          rm -rf $GITHUB_WORKSPACE/*
