@@ -64,13 +64,13 @@ jobs:
           cd common
           patch -p1 < 50_add_susfs_in_${{ inputs.susfs_branch }}.patch
 
-      - name: Run sed and perl Commands
+      - name: Replace the kernel name
         run: |
           cd oplus/kernel_platform
-          sed -i '$s|echo "\$res"|echo "\$res-Wild+"|' ./common/scripts/setlocalversion
-          sed -i '$s|echo "\$res"|echo "\$res-Wild+"|' ./msm-kernel/scripts/setlocalversion
+          sed -i '$s|echo "\$res"|echo "\$res-For-Sweefl"|' ./common/scripts/setlocalversion
+          sed -i '$s|echo "\$res"|echo "\$res-For-Sweefl"|' ./msm-kernel/scripts/setlocalversion
 
-      - name: Build the Kernel
+      - name: Build the kernel
         run: |
           cd oplus
           rm -rf ./kernel_platform/common/android/abi_gki_protected_exports_*
@@ -87,7 +87,7 @@ jobs:
           cd ./AnyKernel3
           zip -r ../$ZIP_NAME ./*
           
-      - name: Upload Build Artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kernel
