@@ -46,7 +46,7 @@ jobs:
 
           # OnePlus kernel
           mkdir -p oplus && cd oplus
-          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b ${{ inputs.oneplus_branch }} -m ${{ inputs.oneplus_file }} --depth 1
+          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b ${{ inputs.oplus_branch }} -m ${{ inputs.oplus_file }} --depth 1
           repo --version
           repo --trace sync -c -j$(nproc --all) --no-tags --fail-fast
 
