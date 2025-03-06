@@ -4,17 +4,63 @@ on:
   workflow_dispatch:
     inputs:
       oplus_branch:
-        type: string
+        type: choice
         required: true
-        description: OnePlus source code branch.
-      oplus_file:
+        options:
+          - oneplus/sm8750
+          - oneplus/sm8650
+          - oneplus/sm8550
+          - oneplus/sm8475
+          - oneplus/sm7675
+          - oneplus/sm7550
+          - other
+        description: OnePlus source code branch
+      oplus_other_branch:
         type: string
+        required: false
+        description: OnePlus source code other branch
+      oplus_name:
+        type: choice
         required: true
-        description: OnePlus source code file.
+        options:
+          - oneplus_13r
+          - oneplus12_u
+          - oneplus12_v
+          - oneplus_12r_v
+          - oneplus_11_v
+          - oneplus_11r_v
+          - oneplus_ace5
+          - oneplus_ace3_v
+          - oneplus_ace3_pro
+          - oneplus_ace3_pro_v
+          - oneplus_ace2_v
+          - oneplus_ace2pro_v
+          - other
+        description: OnePlus phone model
+      oplus_other_name:
+        type: string
+        required: false
+        description: OnePlus ohter phone model
+      oplus_other_file:
+        type: string
+        required: false
+        description: OnePlus source code other file
       susfs_branch:
-        type: string
+        type: choice
         required: true
-        description: susfs4ksu branch.
+        options:
+          - gki-android12-5.10
+          - gki-android13-5.10
+          - gki-android13-5.15
+          - gki-android14-5.15
+          - gki-android14-6.1
+          - gki-android15-6.6
+          - other
+        description: susfs4ksu branch
+      susfs_other_branch:
+        type: string
+        required: false
+        description: susfs4ksu other branch
 
 jobs:
   build:
@@ -31,6 +77,27 @@ jobs:
           remove-haskell: "true"
           remove-codeql: "true"
           
+      - name: Initialize environment
+        run: |
+          # oplus branch
+          if [ "${{ inputs.oplus_branch }}" = "other" ]; then
+            echo "OPLUS_BRANCH=${{ inputs.oplus_other_branch }}" >> $GITHUB_ENV
+          else
+            echo "OPLUS_BRANCH=${{ inputs.oplus_branch }}" >> $GITHUB_ENV
+          fi
+          # oplus name
+          if [ "${{ inputs.oplus_name }}" = "other" ]; then
+            echo "OPLUS_NAME=${{ inputs.oplus_other_name }}" >> $GITHUB_ENV
+          else
+            echo "OPLUS_NAME=${{ inputs.oplus_name }}" >> $GITHUB_ENV
+          fi
+          # susfs4ksu branch
+          if [ "${{ inputs.susfs_branch }}" = "other" ]; then
+            echo "SUSFS_BRANCH=${{ inputs.susfs_other_branch }}" >> $GITHUB_ENV
+          else
+            echo "SUSFS_BRANCH=${{ inputs.susfs_branch }}" >> $GITHUB_ENV
+          fi
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -39,14 +106,14 @@ jobs:
       - name: Initialize and sync kernel source
         run: |
           # susfs4ksu
-          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b ${{ inputs.susfs_branch }} --depth 1
+          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b ${{ env.SUSFS_BRANCH }} --depth 1
 
           # AnyKernel3
           git clone https://github.com/osm0sis/AnyKernel3.git --depth 1
 
           # OnePlus kernel
           mkdir -p oplus && cd oplus
-          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b ${{ inputs.oplus_branch }} -m ${{ inputs.oplus_file }} --depth 1
+          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b ${{ env.OPLUS_BRANCH }} -m ${{ inputs.OPLUS_NAME }}.xml --depth 1
           repo --version
           repo --trace sync -c -j$(nproc --all) --no-tags --fail-fast
 
@@ -74,14 +141,15 @@ jobs:
         run: |
           cd oplus
           rm -rf ./kernel_platform/common/android/abi_gki_protected_exports_*
-          ./kernel_platform/oplus/build/oplus_build_kernel.sh pineapple gki
+          ./kernel_platform/oplus/build/oplus_build_kernel.sh waipio gki
+          ./kernel_platform/oplus/build/oplus_rebuild_img.sh waipio gki
 
-      - name: Create Bootimgs Folder and Copy Images
+      - name: Create bootimgs folder and copy images
         run: |
           cd oplus
           cp ./out/dist/Image ../AnyKernel3/Image
           
-      - name: Create ZIP Files for Different Formats
+      - name: Create zip files for different formats
         run: |
           ZIP_NAME="Anykernel3-${{ inputs.susfs_branch }}-KernelSU-SUSFS.zip"
           cd ./AnyKernel3
