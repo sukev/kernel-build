@@ -125,7 +125,7 @@ jobs:
           cp ../../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
 
           cd ./KernelSU-Next
-          patch -p1 --forward < 10_enable_susfs_for_ksu.patc
+          patch -p1 --forward < 10_enable_susfs_for_ksu.patch
 
           cd ../common
           patch -p1 < 50_add_susfs_in_${{ env.SUSFS_BRANCH }}.patch
