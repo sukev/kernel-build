@@ -108,12 +108,13 @@ jobs:
 
           # OnePlus kernel
           mkdir -p oplus && cd oplus
-          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b ${{ env.OPLUS_BRANCH }} -m ${{ inputs.OPLUS_NAME }}.xml --depth 1
-          repo --version
+          repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b ${{ env.OPLUS_BRANCH }} -m ${{ env.OPLUS_NAME }}.xml --depth 1
           repo --trace sync -c -j$(nproc --all) --no-tags --fail-fast
 
           # KernelSU-Next
-          cd kernel_platform/common
+          cd kernel_platform
+          KERNEL_REPO="$(pwd)"
+          echo "KERNEL_REPO=$KERNEL_REPO" >> $GITHUB_ENV
           curl -LSs https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next-susfs/kernel/setup.sh | bash -s next-susfs
 
       - name: Apply susfs patches
@@ -131,10 +132,7 @@ jobs:
           cd oplus/kernel_platform
           sed -i '$s|echo "\$res"|echo "\$res-For-Sweefl"|' ./common/scripts/setlocalversion
           sed -i '$s|echo "\$res"|echo "\$res-For-Sweefl"|' ./msm-kernel/scripts/setlocalversion
-          sed -i 's/-dirty//' ./common/scripts/setlocalversion
-          sed -i 's/-dirty//' ./msm-kernel/scripts/setlocalversion
           sed -i '/echo "LTO $LTO "/i export LTO=thin' ./oplus/build/oplus_setup.sh
-          sed -i 's/export REPACK_IMG=true/export REPACK_IMG=false/g' ./oplus/build/oplus_setup.sh
 
       - name: Build the kernel
         run: |
@@ -150,7 +148,7 @@ jobs:
           
       - name: Create zip files for different formats
         run: |
-          ZIP_NAME="Anykernel3-${{ inputs.susfs_branch }}-KernelSU-SUSFS.zip"
+          ZIP_NAME="Anykernel3-${{ env.SUSFS_BRANCH }}-KernelSU-SUSFS.zip"
           cd ./AnyKernel3
           zip -r ../$ZIP_NAME ./*
           
