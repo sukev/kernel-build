@@ -41,20 +41,16 @@ on:
         type: string
         required: false
         description: OnePlus ohter phone model
-      oplus_other_file:
-        type: string
-        required: false
-        description: OnePlus source code other file
       susfs_branch:
         type: choice
         required: true
         options:
-          - gki-android12-5.10
-          - gki-android13-5.10
-          - gki-android13-5.15
-          - gki-android14-5.15
-          - gki-android14-6.1
           - gki-android15-6.6
+          - gki-android14-6.1
+          - gki-android14-5.15
+          - gki-android13-5.15
+          - gki-android13-5.10
+          - gki-android12-5.10
           - other
         description: susfs4ksu branch
       susfs_other_branch:
