@@ -119,12 +119,16 @@ jobs:
       - name: Apply susfs patches
         run: |
           cd oplus/kernel_platform
-          cp ../../susfs4ksu/kernel_patches/50_add_susfs_in_${{ inputs.susfs_branch }}.patch ./common/
+          cp ../../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./KernelSU-Next/
+          cp ../../susfs4ksu/kernel_patches/50_add_susfs_in_${{ env.SUSFS_BRANCH }}.patch ./common/
           cp ../../susfs4ksu/kernel_patches/fs/* ./common/fs/
           cp ../../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
 
-          cd common
-          patch -p1 < 50_add_susfs_in_${{ inputs.susfs_branch }}.patch
+          cd ./KernelSU-Next
+          patch -p1 --forward < 10_enable_susfs_for_ksu.patc
+
+          cd ../common
+          patch -p1 < 50_add_susfs_in_${{ env.SUSFS_BRANCH }}.patch
 
       - name: Replace the kernel name
         run: |
