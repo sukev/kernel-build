@@ -131,6 +131,10 @@ jobs:
           cd oplus/kernel_platform
           sed -i '$s|echo "\$res"|echo "\$res-For-Sweefl"|' ./common/scripts/setlocalversion
           sed -i '$s|echo "\$res"|echo "\$res-For-Sweefl"|' ./msm-kernel/scripts/setlocalversion
+          sed -i 's/-dirty//' ./common/scripts/setlocalversion
+          sed -i 's/-dirty//' ./msm-kernel/scripts/setlocalversion
+          sed -i '/echo "LTO $LTO "/i export LTO=thin' ./oplus/build/oplus_setup.sh
+          sed -i 's/export REPACK_IMG=true/export REPACK_IMG=false/g' ./oplus/build/oplus_setup.sh
 
       - name: Build the kernel
         run: |
