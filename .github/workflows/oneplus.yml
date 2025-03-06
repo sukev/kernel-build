@@ -113,7 +113,7 @@ jobs:
           repo --trace sync -c -j$(nproc --all) --no-tags --fail-fast
 
           # KernelSU-Next
-          cd kernel_platform
+          cd kernel_platform/common
           curl -LSs https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next-susfs/kernel/setup.sh | bash -s next-susfs
 
       - name: Apply susfs patches
