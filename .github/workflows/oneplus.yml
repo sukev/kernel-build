@@ -142,7 +142,7 @@ jobs:
           cd oplus
           rm -rf ./kernel_platform/common/android/abi_gki_protected_exports_*
           ./kernel_platform/oplus/build/oplus_build_kernel.sh waipio gki
-          ./kernel_platform/oplus/build/oplus_rebuild_img.sh waipio gki
+          # ./kernel_platform/oplus/build/oplus_rebuild_img.sh waipio gki
 
       - name: Create bootimgs folder and copy images
         run: |
