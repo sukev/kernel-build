@@ -96,7 +96,11 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install repo python3 python-is-python3
+          sudo apt install python3 python-is-python3
+          curl -LO https://storage.googleapis.com/git-repo-downloads/repo
+          chmod +x repo
+          sudo install repo
+          rm -f repo
       
       - name: Initialize and sync kernel source
         run: |
@@ -115,6 +119,7 @@ jobs:
           cd kernel_platform
           KERNEL_REPO="$(pwd)"
           echo "KERNEL_REPO=$KERNEL_REPO" >> $GITHUB_ENV
+          cd common
           curl -LSs https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next-susfs/kernel/setup.sh | bash -s next-susfs
 
       - name: Apply susfs patches
