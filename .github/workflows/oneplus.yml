@@ -149,14 +149,14 @@ jobs:
           cd oplus
           rm -rf ./kernel_platform/common/android/abi_gki_protected_exports_*
           sed -i '/echo "LTO $LTO "/i export LTO=thin' ./kernel_platform/oplus/build/oplus_setup.sh
-          ./kernel_platform/oplus/build/oplus_build_kernel.sh "" gki
+          ./kernel_platform/oplus/build/oplus_build_kernel.sh default gki
           
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: kernel
+          name: boot-artifact
           path: |
-            oplus/out/dist/*
+            oplus/out/dist/boot.img
 
       - name: Cleanup workspace
         run: |
