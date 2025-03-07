@@ -57,16 +57,22 @@ on:
         type: string
         required: false
         description: susfs4ksu other branch
+      kernel_name_suffix:
+        type: string
+        required: false
+        default: "sukev"
+        description: Kernel name suffix
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
         with:
           root-reserve-mb: 8192
           temp-reserve-mb: 2048
+          swap-size-mb: 8192
           remove-dotnet: "true"
           remove-android: "true"
           remove-haskell: "true"
@@ -92,6 +98,12 @@ jobs:
           else
             echo "SUSFS_BRANCH=${{ inputs.susfs_branch }}" >> $GITHUB_ENV
           fi
+          # kernel name suffix
+          if [ -z "${{ inputs.kernel_name_suffix}}" ]; then
+            echo "KERNEL_NAME_SUFFIX=" >> $GITHUB_ENV
+          else
+            echo "KERNEL_NAME_SUFFIX=-${{ inputs.kernel_name_suffix }}" >> $GITHUB_ENV
+          fi
 
       - name: Install dependencies
         run: |
@@ -105,19 +117,13 @@ jobs:
           # susfs4ksu
           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b ${{ env.SUSFS_BRANCH }} --depth 1
 
-          # AnyKernel3
-          git clone https://github.com/osm0sis/AnyKernel3.git --depth 1
-
           # OnePlus kernel
           mkdir -p oplus && cd oplus
           repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b ${{ env.OPLUS_BRANCH }} -m ${{ env.OPLUS_NAME }}.xml --depth 1
           repo --trace sync -c -j$(nproc --all) --no-tags --fail-fast
 
           # KernelSU-Next
-          cd kernel_platform
-          KERNEL_REPO="$(pwd)"
-          echo "KERNEL_REPO=$KERNEL_REPO" >> $GITHUB_ENV
-          cd common
+          cd kernel_platform/common
           curl -LSs https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next-susfs/kernel/setup.sh | bash -s next-susfs
 
       - name: Apply susfs patches
@@ -133,34 +139,24 @@ jobs:
       - name: Replace the kernel name
         run: |
           cd oplus/kernel_platform
-          sed -i '$s|echo "\$res"|echo "\$res-For-Sweefl"|' ./common/scripts/setlocalversion
-          sed -i '$s|echo "\$res"|echo "\$res-For-Sweefl"|' ./msm-kernel/scripts/setlocalversion
-          sed -i '/echo "LTO $LTO "/i export LTO=thin' ./oplus/build/oplus_setup.sh
+          sed -i '$s|echo "\$res"|echo "\$res${{ env.KERNEL_NAME_SUFFIX }}"|' ./common/scripts/setlocalversion
+          sed -i '$s|echo "\$res"|echo "\$res${{ env.KERNEL_NAME_SUFFIX }}"|' ./msm-kernel/scripts/setlocalversion
+          sed -i 's/-dirty//' ./common/scripts/setlocalversion
+          sed -i 's/-dirty//' ./msm-kernel/scripts/setlocalversion
 
       - name: Build the kernel
         run: |
           cd oplus
           rm -rf ./kernel_platform/common/android/abi_gki_protected_exports_*
-          ./kernel_platform/oplus/build/oplus_build_kernel.sh waipio gki
-          # ./kernel_platform/oplus/build/oplus_rebuild_img.sh waipio gki
-
-      - name: Create bootimgs folder and copy images
-        run: |
-          cd oplus
-          cp ./out/dist/Image ../AnyKernel3/Image
-          
-      - name: Create zip files for different formats
-        run: |
-          ZIP_NAME="Anykernel3-${{ env.SUSFS_BRANCH }}-KernelSU-SUSFS.zip"
-          cd ./AnyKernel3
-          zip -r ../$ZIP_NAME ./*
+          sed -i '/echo "LTO $LTO "/i export LTO=thin' ./kernel_platform/oplus/build/oplus_setup.sh
+          ./kernel_platform/oplus/build/oplus_build_kernel.sh "" gki
           
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kernel
           path: |
-            *.zip
+            oplus/out/dist/*
 
       - name: Cleanup workspace
         run: |
